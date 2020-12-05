@@ -84,8 +84,8 @@ class NewListGenerator {
     BigInteger result = BigInteger.valueOf(0);
     for(int x = 0; x < polygonSize[0]; x++) {
       for(int y = 0; y < polygonSize[1]; y++) {
-        if(polygon.testBit(x + y * polygonSize[0])) {
-          result = result.setBit(y + (polygonSize[0] - x - 1) * polygonSize[1]);
+        if(polygon.testBit((polygonSize[0] - x - 1) + y * polygonSize[0])) {
+          result = result.setBit(y + x * polygonSize[1]);
         }
       }
     }
@@ -96,8 +96,8 @@ class NewListGenerator {
     BigInteger result = BigInteger.valueOf(0);
     for(int x = 0; x < polygonSize[0]; x++) {
       for(int y = 0; y < polygonSize[1]; y++) {
-        if(polygon.testBit(x + y * polygonSize[0])) {
-          result = result.setBit((polygonSize[1] - y - 1) + (polygonSize[0] - x - 1) * polygonSize[1]);
+        if(polygon.testBit((polygonSize[0] - x - 1) + (polygonSize[1] - y - 1) * polygonSize[0])) {
+          result = result.setBit(y + x * polygonSize[1]);
         }
       }
     }
@@ -106,10 +106,10 @@ class NewListGenerator {
 
   static BigInteger flip(BigInteger polygon, int[] polygonSize, int multipliedSize) {
     BigInteger result = BigInteger.valueOf(0);
-    for(int x = 0; x < polygonSize[0]; x++) {
-      for(int y = 0; y < polygonSize[1]; y++) {
-        if(polygon.testBit(x + y * polygonSize[0])) {
-          result = result.setBit((polygonSize[0] - x - 1) + y * polygonSize[0]);
+    for(int y = 0; y < polygonSize[1]; y++) {
+      for(int x = 0; x < polygonSize[0]; x++) {
+        if(polygon.testBit((polygonSize[0] - x - 1) + y * polygonSize[0])) {
+          result = result.setBit(x + y * polygonSize[0]);
         }
       }
     }

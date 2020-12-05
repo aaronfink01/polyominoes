@@ -8,7 +8,7 @@ import java.io.ObjectInputStream;
 class ArrayVersion {
   static int[] timesCalled = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   static long[] totalTime = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  static NewListGenerator listGenerator = new NewListGenerator();
+  static SimultaneousListGenerator listGenerator = new SimultaneousListGenerator();
 
   static void printPolygonList(ArrayList<Polygon> polygons) {
     timesCalled[2] += 1;
@@ -46,12 +46,12 @@ class ArrayVersion {
           }
           usedPairs.add(polygon.pairs[pairIndex] / 2);
           newPairs[0] = polygon.pairs[pairIndex] / 2;
-          newPairs = superposition(newPairs);
           int newWidth = polygon.width;
           if(polygon.pairs[pairIndex] % 4 != 0) {
             newWidth++;
+            moveRight(newPairs);
           }
-          BigInteger invariate = invariate(newPairs, newWidth, polygon.height);
+          BigInteger invariate = listGenerator.makeInvariate(newPairs, newWidth, polygon.height);
           extensions.add(new Polygon(newPairs, invariate, newWidth, polygon.height));
         }
       }
@@ -63,12 +63,11 @@ class ArrayVersion {
           }
           usedPairs.add(polygon.pairs[pairIndex] * 2);
           newPairs[0] = polygon.pairs[pairIndex] * 2;
-          newPairs = superposition(newPairs);
           int newWidth = polygon.width;
           if(polygon.pairs[pairIndex] % Math.pow(2, polygon.width) == 0) {
             newWidth++;
           }
-          BigInteger invariate = invariate(newPairs, newWidth, polygon.height);
+          BigInteger invariate = listGenerator.makeInvariate(newPairs, newWidth, polygon.height);
           extensions.add(new Polygon(newPairs, invariate, newWidth, polygon.height));
         }
       }
@@ -80,12 +79,12 @@ class ArrayVersion {
           }
           usedPairs.add(polygon.pairs[pairIndex] / 3);
           newPairs[0] = polygon.pairs[pairIndex] / 3;
-          newPairs = superposition(newPairs);
           int newHeight = polygon.height;
           if(polygon.pairs[pairIndex] % 9 != 0) {
             newHeight++;
+            moveUp(newPairs);
           }
-          BigInteger invariate = invariate(newPairs, polygon.width, newHeight);
+          BigInteger invariate = listGenerator.makeInvariate(newPairs, polygon.width, newHeight);
           extensions.add(new Polygon(newPairs, invariate, polygon.width, newHeight));
         }
       }
@@ -97,12 +96,11 @@ class ArrayVersion {
           }
           usedPairs.add(polygon.pairs[pairIndex] * 3);
           newPairs[0] = polygon.pairs[pairIndex] * 3;
-          newPairs = superposition(newPairs);
           int newHeight = polygon.height;
           if(polygon.pairs[pairIndex] % Math.pow(3, polygon.height) == 0) {
             newHeight++;
           }
-          BigInteger invariate = invariate(newPairs, polygon.width, newHeight);
+          BigInteger invariate = listGenerator.makeInvariate(newPairs, polygon.width, newHeight);
           extensions.add(new Polygon(newPairs, invariate, polygon.width, newHeight));
         }
       }
@@ -112,82 +110,24 @@ class ArrayVersion {
     return extensions;
   }
 
-  static int[] superposition(int[] originalPairs) {
-    timesCalled[5] += 1;
-    //long startTime = System.currentTimeMillis();
-    boolean tooLeft = false;
-    boolean tooDown = false;
+  static void moveRight(int[] originalPairs) {
     for(int pairIndex = originalPairs.length - 1; pairIndex > -1; pairIndex--) {
-      if(originalPairs[pairIndex] % 2 != 0) {
-        tooLeft = true;
-      }
-      if(originalPairs[pairIndex] % 3 != 0) {
-        tooDown = true;
-      }
-      if(tooLeft || tooDown) {
-        break;
-      }
+      originalPairs[pairIndex] *= 2;
     }
-
-    if(tooLeft) {
-      for(int pairIndex = originalPairs.length - 1; pairIndex > -1; pairIndex--) {
-        originalPairs[pairIndex] *= 2;
-      }
-      return originalPairs;
-    }
-
-    if(tooDown) {
-      for(int pairIndex = originalPairs.length - 1; pairIndex > -1; pairIndex--) {
-        originalPairs[pairIndex] *= 3;
-      }
-      return originalPairs;
-    }
-    //long endTime = System.currentTimeMillis();
-    //totalTime[5] += endTime - startTime;
-    return originalPairs;
   }
 
-  static BigInteger binarize(boolean[] polygon, int multipliedSize, int width, int height) {
-    BigInteger result = BigInteger.valueOf(0);
-    for(int index = multipliedSize - 1; index >= 0; index--) {
-      if(polygon[index]) {
-        result = result.setBit(index);
-      }
+  static void moveUp(int[] originalPairs) {
+    for(int pairIndex = originalPairs.length - 1; pairIndex > -1; pairIndex--) {
+      originalPairs[pairIndex] *= 3;
     }
-    // If our polygons were ever of size 32, we would need to shift by more than 4 bits.
-    result = result.shiftLeft(4).add(BigInteger.valueOf(width)).shiftLeft(4).add(BigInteger.valueOf(height));
-    return result;
-  }
-
-  static BigInteger invariate(int[] pairs, int width, int height) {
-    int[] polygonSize = new int[] {width, height};
-    int multipliedSize = width * height;
-
-    BigInteger[] possibilities = new BigInteger[8];
-    BigInteger base = listGenerator.listMaker(pairs, polygonSize, multipliedSize);
-    possibilities[0] = base.shiftLeft(4).add(BigInteger.valueOf(width)).shiftLeft(4).add(BigInteger.valueOf(height));
-    possibilities[1] = listGenerator.flip(base, polygonSize, multipliedSize).shiftLeft(4).add(BigInteger.valueOf(width)).shiftLeft(4).add(BigInteger.valueOf(height));
-    possibilities[2] = listGenerator.ninetyDegrees(base, polygonSize, multipliedSize).shiftLeft(4).add(BigInteger.valueOf(height)).shiftLeft(4).add(BigInteger.valueOf(width));
-    possibilities[3] = listGenerator.ninetyDegreesAndFlip(base, polygonSize, multipliedSize).shiftLeft(4).add(BigInteger.valueOf(height)).shiftLeft(4).add(BigInteger.valueOf(width));
-    possibilities[4] = listGenerator.hundredEighty(base, polygonSize, multipliedSize).shiftLeft(4).add(BigInteger.valueOf(width)).shiftLeft(4).add(BigInteger.valueOf(height));
-    possibilities[5] = listGenerator.hundredEightyAndFlip(base, polygonSize, multipliedSize).shiftLeft(4).add(BigInteger.valueOf(width)).shiftLeft(4).add(BigInteger.valueOf(height));
-    possibilities[6] = listGenerator.twoSeventy(base, polygonSize, multipliedSize).shiftLeft(4).add(BigInteger.valueOf(height)).shiftLeft(4).add(BigInteger.valueOf(width));
-    possibilities[7] = listGenerator.twoSeventyAndFlip(base, polygonSize, multipliedSize).shiftLeft(4).add(BigInteger.valueOf(height)).shiftLeft(4).add(BigInteger.valueOf(width));
-
-    BigInteger result = possibilities[0];
-    for(int possibilityIndex = possibilities.length - 1; possibilityIndex > 0; possibilityIndex--) {
-      if(possibilities[possibilityIndex].compareTo(result) == -1) {
-        result = possibilities[possibilityIndex];
-      }
-    }
-
-    return result;
   }
 
   static ArrayList<Polygon> generateExtensionsFromList(ArrayList<Polygon> polygons) {
     timesCalled[18] += 1;
     //long startTime = System.currentTimeMillis();
+
     int extended = 0;
+    long lastExtendedTime = System.currentTimeMillis();
     ArrayList<Polygon> extensions = new ArrayList<Polygon>();
     HashSet<BigInteger> invariates = new HashSet<BigInteger>();
     int polygonArea = polygons.get(0).pairs.length;
@@ -204,8 +144,14 @@ class ArrayVersion {
       }
       if(extended % 3000 == 0) {
         System.out.println(extended);
+        long currentTime = System.currentTimeMillis();
+        System.out.println(currentTime - lastExtendedTime);
+        lastExtendedTime = currentTime;
       }
     }
+
+
+
     //long endTime = System.currentTimeMillis();
     //totalTime[18] += endTime - startTime;
     return extensions;
@@ -236,11 +182,11 @@ class ArrayVersion {
   }
 
   public static void main(String[] args) {
-    int size = 16;
+    int size = 14;
 
     ArrayList<Polygon> polygons = new ArrayList<Polygon>();
     int[] monominoePairs = new int[] {6};
-    Polygon monominoe = new Polygon(monominoePairs, invariate(monominoePairs, 1, 1), 1, 1);
+    Polygon monominoe = new Polygon(monominoePairs, listGenerator.makeInvariate(monominoePairs, 1, 1), 1, 1);
     polygons.add(monominoe);
 
     long startTime = System.currentTimeMillis();
@@ -252,6 +198,17 @@ class ArrayVersion {
     System.out.println("Total Time: " + Long.toString((endTime - startTime) / 1000) + " seconds.");
     System.out.println("Total Memory: " + Long.toString(Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) + " bytes.");
     System.out.println("Result: " + Integer.toString(polygons.size()));
+
+    // startTime = System.currentTimeMillis();
+    // writeObjectToFile(polygons);
+    // endTime = System.currentTimeMillis();
+    // System.out.println("Write Time: " + ((endTime - startTime) / 1000) + " seconds.");
+    // polygons = (ArrayList<Polygon>)readObjectFromFile("data/polygon");
+    // startTime = System.currentTimeMillis();
+    // System.out.println("Read Time: " + ((startTime - endTime) / 1000) + " seconds.");
+
+
+
 
 
      // for(int index = 0; index < totalTime.length - 1; index++) {
